@@ -41,7 +41,7 @@ const Login = () => {
     };
 
     const handleGoogleLogin = () => {
-        window.location.href = 'http://localhost:5001/auth/google';
+        window.location.href = "https://auth-backend-rrgv.onrender.com/auth/google";
     };
 
     return (
