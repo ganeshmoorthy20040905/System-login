@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import api, { setAccessToken } from '../api';
+import api from '../api';
 
 const AuthContext = createContext(null);
 
@@ -12,13 +12,11 @@ export const AuthProvider = ({ children }) => {
             try {
                 const { data } = await api.post('/auth/refresh');
                 if (data?.accessToken) {
-                    setAccessToken(data.accessToken);
                     const payload = JSON.parse(atob(data.accessToken.split('.')[1]));
                     setUser({ id: payload.userId, role: payload.role });
                 }
             } catch (error) {
                 console.log('Session refresh failed (expected if not logged in)');
-                setAccessToken(null);
             } finally {
                 setLoading(false);
             }
@@ -27,7 +25,6 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     const login = (userData, accessToken) => {
-        setAccessToken(accessToken);
         setUser(userData);
     };
 
@@ -35,7 +32,6 @@ export const AuthProvider = ({ children }) => {
         try {
             await api.post('/auth/logout');
         } catch (e) { }
-        setAccessToken(null);
         setUser(null);
     };
 
