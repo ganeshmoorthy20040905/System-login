@@ -5,6 +5,7 @@ const rateLimit = require('express-rate-limit');
 const bcrypt = require('bcrypt');
 const fs = require('fs');
 const passport = require('passport');
+const session = require('express-session');
 
 require('dotenv').config();
 require('./passport-setup'); // init passport
@@ -14,6 +15,9 @@ const pool = require('./db');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// 🔥 IMPORTANT for Render (cookies fix)
+app.set("trust proxy", 1);
+
 process.on('unhandledRejection', (reason, promise) => {
     console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
@@ -21,21 +25,26 @@ process.on('unhandledRejection', (reason, promise) => {
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
+
+// 🔥 CORS FIX (LIVE frontend URL)
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: process.env.FRONTEND_URL || "https://system-login.vercel.app",
     credentials: true
 }));
-const session = require('express-session');
+
+// 🔥 SESSION FIX (production ready)
 app.use(session({
     secret: process.env.JWT_ACCESS_SECRET || 'secret',
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false } // Set true in production over HTTPS
+    cookie: {
+        secure: true,        // MUST true in production (HTTPS)
+        sameSite: "None"     // IMPORTANT for cross-origin
+    }
 }));
+
 app.use(passport.initialize());
 app.use(passport.session());
-
-// Rate limiting moved to specific routes
 
 // Routes
 app.use('/auth', require('./routes/auth'));
@@ -46,11 +55,9 @@ app.use('/tasks', require('./routes/tasks'));
 // Init DB & Start Server
 const startServer = async () => {
     try {
-        // Read and run init.sql
         const initSql = fs.readFileSync('init.sql').toString();
         await pool.query(initSql);
 
-        // Create default admin if not exists
         const adminEmail = 'admin@gmail.com';
         const adminResult = await pool.query('SELECT * FROM users WHERE email = $1', [adminEmail]);
 
@@ -75,7 +82,5 @@ const startServer = async () => {
 
 startServer();
 
-// Add a keep-alive interval to prevent event loop from exiting
-setInterval(() => {
-    // Keep alive
-}, 1000 * 60 * 60);
+// Keep alive (Render free tier)
+setInterval(() => { }, 1000 * 60 * 60);
