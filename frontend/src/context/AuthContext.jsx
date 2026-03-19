@@ -11,11 +11,13 @@ export const AuthProvider = ({ children }) => {
         const initAuth = async () => {
             try {
                 const { data } = await api.post('/auth/refresh');
-                setAccessToken(data.accessToken);
-
-                const payload = JSON.parse(atob(data.accessToken.split('.')[1]));
-                setUser({ id: payload.userId, role: payload.role });
+                if (data?.accessToken) {
+                    setAccessToken(data.accessToken);
+                    const payload = JSON.parse(atob(data.accessToken.split('.')[1]));
+                    setUser({ id: payload.userId, role: payload.role });
+                }
             } catch (error) {
+                console.log('Session refresh failed (expected if not logged in)');
                 setAccessToken(null);
             } finally {
                 setLoading(false);
